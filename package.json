@@ -17,6 +17,7 @@
   },
   "homepage": "https://github.com/gaabgonca/pokedex-backend#readme",
   "dependencies": {
+    "axios": "^0.21.1",
     "colors": "^1.4.0",
     "cors": "^2.8.5",
     "dotenv": "^10.0.0",

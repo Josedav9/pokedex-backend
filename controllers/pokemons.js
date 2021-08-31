@@ -1,6 +1,7 @@
 const asyncHandler = require('../middleware/async')
 const Pokedex = require('pokedex-promise-v2')
 const ErrorResponse = require('../utils/errorResponse')
+const axios = require('axios')
 
 const P = new Pokedex()
 
@@ -17,22 +18,25 @@ module.exports.pokemon_0 = asyncHandler(async (req, res, next) => {
 module.exports.evolutionChain = asyncHandler(
   async (req, res, next) => {
     const pokemonId = req.params.pokemonId
-    const pokemon = await P.getPokemonSpeciesByName(pokemonId)
-      .then((response) => {
-        console.log(pokemon)
-        if (!pokemon || pokemon == {}) {
-          return next(
-            new Errorpokemon(
-              `Species not found with id ${pokemonId}`,
-              404
-            )
-          )
-        } else {
-          return pokemon
-        }
-      })
+    await P.getPokemonSpeciesByName(pokemonId)
       .then((pokemon) => {
-        res.status(200).json({ data: pokemon })
+        const evolutionChainUrl = pokemon.evolution_chain.url
+
+        axios.get(evolutionChainUrl).then(async (response) => {
+          const evolutionChain = response.data.chain
+          let evolutions = getEvolutionsFromChain(evolutionChain, [])
+          const responses = await axios.all(
+            evolutions.map((evolution) => axios.get(evolution.url))
+          )
+          const evolutionsDetails = responses.map(
+            (response) => response.data
+          )
+          res.status(200).json({
+            success: true,
+            evolutions,
+            species: evolutionsDetails,
+          })
+        })
       })
       .catch(function (error) {
         return next(
@@ -44,3 +48,12 @@ module.exports.evolutionChain = asyncHandler(
       })
   }
 )
+
+const getEvolutionsFromChain = (chainRoot, evolutionsList) => {
+  evolutionsList.push(chainRoot.species)
+  let subChain = chainRoot.evolves_to
+  if (subChain.length == 0) {
+    return evolutionsList
+  }
+  return getEvolutionsFromChain(subChain[0], evolutionsList)
+}
