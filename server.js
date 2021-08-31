@@ -3,11 +3,13 @@ const express = require('express')
 const morgan = require('morgan')
 const cors = require('cors')
 const colors = require('colors')
-//Load environment variables
+const errorHandler = require('./middleware/error')
 
+//Load environment variables
 dotenv.config({ path: './config/config.env' })
 
 //Load route files
+const pokemon = require('./routes/pokemons')
 
 //
 const app = express()
@@ -25,6 +27,10 @@ app.use(express.static('public'))
 app.use(cors())
 
 //Mount routers
+app.use('/api/v1/pokemon', pokemon)
+
+//Error handling middleware
+app.use(errorHandler)
 
 const PORT = process.env.PORT || 5000
 
