@@ -1,0 +1,27 @@
+{
+  "name": "pokedex_api",
+  "version": "1.0.0",
+  "description": "Api for pokedex flutter app",
+  "main": "server.js",
+  "scripts": {
+    "start": "nodemon server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gaabgonca/pokedex-backend.git"
+  },
+  "author": "s4n",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/gaabgonca/pokedex-backend/issues"
+  },
+  "homepage": "https://github.com/gaabgonca/pokedex-backend#readme",
+  "dependencies": {
+    "colors": "^1.4.0",
+    "cors": "^2.8.5",
+    "dotenv": "^10.0.0",
+    "express": "^4.17.1",
+    "morgan": "^1.10.0",
+    "nodemon": "^2.0.12"
+  }
+}
