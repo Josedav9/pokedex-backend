@@ -34,41 +34,20 @@ module.exports.getPokemons = asyncHandler(async (req, res, next) => {
 
   //Get all pokemon within boundaries
   const pokemonResponses = await axios.all(
-    pokemonList.map(async (pokemon) => await axios.get(pokemon.url))
-  )
-
-  //Get all species within boundaries
-  const speciesResponses = await axios.all(
-    pokemonList.map(
-      async (pokemon) =>
-        await axios.get(
-          pokemon.url.replace('pokemon', 'pokemon-species')
-        )
-    )
+    pokemonList.map((pokemon) => axios.get(pokemon.url))
   )
 
   //Purify pokemon data
   const pokemonDetails = pokemonResponses.map((response) => {
-    return removeUnnecesaryFieldsFromPokemon(response)
+    return removeUnnecesaryFieldsFromPokemon(response.data)
   })
-
-  //Purify species data
-  const speciesDetails = speciesResponses.map((response) => {
-    return removeUnnecesaryFieldsFromSpecies(response)
-  })
-
-  //Mix pokemon and species
-  const pokemonsAndSpecies = mixPokemonsAndSpecies(
-    pokemonDetails,
-    speciesDetails
-  )
 
   //Respond
   res.status(200).json({
     success: true,
     data: {
-      count: pokemonsAndSpecies.length,
-      pokemon: pokemonsAndSpecies,
+      count: pokemonDetails.length,
+      pokemon: pokemonDetails,
     },
   })
 })
@@ -316,15 +295,20 @@ const getEvolutionsFromChain = (chainRoot, evolutionsList) => {
   return getEvolutionsFromChain(subChain[0], evolutionsList)
 }
 
-const removeUnnecesaryFieldsFromPokemon = (response) => {
-  const raw_data = response.data
-  delete raw_data.game_indices
-  delete raw_data.moves
-  delete raw_data.held_items
-  delete raw_data.past_types
-  delete raw_data.base_experience
-  delete raw_data.stats
-  return raw_data
+const removeUnnecesaryFieldsFromPokemon = ({
+  id,
+  name,
+  order,
+  sprites,
+  types,
+}) => {
+  return {
+    id,
+    name,
+    order,
+    sprite: sprites.front_default,
+    types: types.map((type) => type.type.name),
+  }
 }
 
 const removeUnnecesaryFieldsFromSpecies = (response) => {
