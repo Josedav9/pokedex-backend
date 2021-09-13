@@ -191,8 +191,7 @@ module.exports.getEvolutionChain = asyncHandler(
           )
           res.status(200).json({
             success: true,
-            evolutions,
-            pokemon: pokemonsAndSpecies,
+            data: pokemonsAndSpecies,
           })
         })
       })
@@ -291,7 +290,7 @@ const removeUnnecesaryFieldsFromPokemon = ({
     id,
     name,
     order,
-    sprite: sprites.front_default,
+    sprite: sprites.other['official-artwork'].front_default,
     types: types.map((type) => type.type.name),
   }
 }
