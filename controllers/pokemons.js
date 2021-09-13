@@ -242,28 +242,16 @@ module.exports.getPokemonsFromType = asyncHandler(
 
       //Purify data
       const pokemonDetails = pokemonResponses.map((response) => {
-        return removeUnnecesaryFieldsFromPokemon(response)
+        return removeUnnecesaryFieldsFromPokemon(response.data)
       })
-
-      //Get species details
-      const speciesDetails = await getSpeciesFromPokemonDetails(
-        pokemonDetails
-      )
-
-      //Mix pokemon details and species details
-
-      const pokemonsAndSpecies = mixPokemonsAndSpecies(
-        pokemonDetails,
-        speciesDetails
-      )
 
       //Respond
       res.status(200).json({
         success: true,
         pagination,
         data: {
-          count: pokemonsAndSpecies.length,
-          pokemon: pokemonsAndSpecies,
+          count: pokemonDetails.length,
+          pokemon: pokemonDetails,
         },
       })
     }
@@ -340,9 +328,7 @@ const getListFromType = async (typeId) => {
   return axios
     .get(BASE_URL + '/type/' + typeId)
     .catch(function (error) {
-      return next(
-        new ErrorResponse(`Type not found with id ${typeId}`, 404)
-      )
+      throw error
     })
 }
 
