@@ -70,11 +70,8 @@ module.exports.getLegendaryPokemons = asyncHandler(
 
     //Get all species within boundaries
     const speciesResponses = await axios.all(
-      pokemonList.map(
-        async (pokemon) =>
-          await axios.get(
-            pokemon.url.replace('pokemon', 'pokemon-species')
-          )
+      pokemonList.map((pokemon) =>
+        axios.get(pokemon.url.replace('pokemon', 'pokemon-species'))
       )
     )
 
@@ -97,18 +94,12 @@ module.exports.getLegendaryPokemons = asyncHandler(
       speciesDetails
     )
 
-    //Mix pokemon and species
-    const pokemonsAndSpecies = mixPokemonsAndSpecies(
-      pokemonDetails,
-      speciesDetails
-    )
-
     //Respond
     res.status(200).json({
       success: true,
       data: {
-        count: pokemonsAndSpecies.length,
-        pokemon: pokemonsAndSpecies,
+        count: pokemonDetails.length,
+        pokemon: pokemonDetails,
       },
     })
   }
@@ -158,18 +149,12 @@ module.exports.getMythicalPokemons = asyncHandler(
       speciesDetails
     )
 
-    //Mix pokemon and species
-    const pokemonsAndSpecies = mixPokemonsAndSpecies(
-      pokemonDetails,
-      speciesDetails
-    )
-
     //Respond
     res.status(200).json({
       success: true,
       data: {
-        count: pokemonsAndSpecies.length,
-        pokemon: pokemonsAndSpecies,
+        count: pokemonDetails.length,
+        pokemon: pokemonDetails,
       },
     })
   }
@@ -404,7 +389,7 @@ const getPokemonFromSpeciesDetails = async (speciesDetails) => {
 
   //Purify pokemon data
   const pokemonDetails = pokemonResponses.map((response) => {
-    return removeUnnecesaryFieldsFromPokemon(response)
+    return removeUnnecesaryFieldsFromPokemon(response.data)
   })
 
   return pokemonDetails
