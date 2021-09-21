@@ -1,7 +1,7 @@
 import * as express from "express";
 import {
-  getEvolutionChain,
   getPokemonsFromType,
+  getEvolutionChain,
   getPokemons,
   getLegendaryPokemons,
   getMythicalPokemons,
