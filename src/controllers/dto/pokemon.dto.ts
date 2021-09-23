@@ -117,3 +117,18 @@ export interface EvolvesTo {
     url: string;
   };
 }
+
+export interface PokeApiGeneration {
+  id: number;
+  name: string;
+  abilities: object[];
+  names: object [];
+  main_region: object;
+  moves: object[];
+  pokemon_species: {
+    name: string,
+    url: string,
+  }[],
+  types: object[],
+  version_groups: object[],
+}

@@ -15,6 +15,8 @@ import {
   PokemonDetails,
 } from "./interfaces/pokemon.interface";
 
+import { getPokemonBygeneration } from "../services/pokemon.service";
+
 const BASE_URL = "https://pokeapi.co/api/v2";
 
 export const pokemon_0 = async (
@@ -273,9 +275,41 @@ export const getPokemonsFromType = async (
 };
 
 /**
- * Recursive function to return all pokemons inside a evolution chain 
- * @param chainRoot 
- * @param evolutionsList 
+ * Gets pokemons of a type
+ * @route GET /api/v1/pokemon/generation/:generation
+ * @access public
+ */
+export const getPokemonByGeneration = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  const generation = req.params.generation;
+  const limit = parseInt(req.query.limit as string) || 20;
+  const offset = parseInt(req.query.offset as string) || 0;
+
+  try {
+    const pokemonList = await getPokemonBygeneration(generation, limit, offset);
+
+    //Respond
+    res.status(200).json({
+      success: true,
+      pagination: pokemonList.pagination,
+      data: {
+        count: pokemonList.pokemonDetails.length,
+        pokemon: pokemonList.pokemonDetails,
+      },
+    });
+  } catch (error) {
+    console.log(error);
+    return next(new ErrorResponse(`Unexpected error`, 400));
+  }
+};
+
+/**
+ * Recursive function to return all pokemons inside a evolution chain
+ * @param chainRoot
+ * @param evolutionsList
  * @returns evolutionsList - An array with all pokemons info inside the evolution chain
  */
 const getEvolutionsFromChain = (
@@ -385,7 +419,7 @@ const getPokemonFromSpeciesDetails = async (
   );
 
   //Purify pokemon data
-  const pokemonDetails = pokemonResponses.map((response: any) => {
+  const pokemonDetails = pokemonResponses.map((response) => {
     return removeUnnecesaryFieldsFromPokemon(response.data);
   });
 
