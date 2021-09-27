@@ -15,17 +15,11 @@ import {
   PokemonDetails,
 } from "./interfaces/pokemon.interface";
 
-import { getPokemonBygeneration } from "../services/pokemon.service";
+import { getListFromType, getPokemonBygeneration, getPokemonList, getPokemonResponse, getSpecialPokemonList, getSpeciesResponse } from "../services/pokemon.service";
 
 const BASE_URL = "https://pokeapi.co/api/v2";
 
-export const pokemon_0 = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  res.status(200).json({ success: true, text: "Hello world" });
-};
+
 
 /**
  * Gets a list of pokemon with pagination & limits
@@ -41,25 +35,14 @@ export const getPokemons = async (
   const offset = parseInt(req.query.offset as string);
 
   try {
-    const pokemonListResponse = await getPokemonListResponse(limit, offset);
-    const pokemonList = pokemonListResponse.data.results;
-
-    //Get all pokemon within boundaries
-    const pokemonResponses = await axios.all(
-      pokemonList.map((pokemon) => axios.get<PokeApiInfoDTO>(pokemon.url))
-    );
-
-    //Purify pokemon data
-    const pokemonDetails = pokemonResponses.map((response) => {
-      return removeUnnecesaryFieldsFromPokemon(response.data);
-    });
+    const pokemonList = await getPokemonList(limit,offset);
 
     //Respond
     res.status(200).json({
       success: true,
       data: {
-        count: pokemonDetails.length,
-        pokemon: pokemonDetails,
+        count: pokemonList.length,
+        pokemon: pokemonList,
       },
     });
   } catch (error) {
@@ -81,42 +64,15 @@ export const getLegendaryPokemons = async (
   const offset = parseInt(req.query.offset as string);
 
   try {
-    const pokemonListResponse = await getPokemonListResponse(limit, offset);
 
-    const pokemonList = pokemonListResponse.data.results;
-
-    //Get all species within boundaries
-    const speciesResponses = await axios.all(
-      pokemonList.map((pokemon) =>
-        axios.get<PokeApiSpeciesInfoDTO>(
-          pokemon.url.replace("pokemon", "pokemon-species")
-        )
-      )
-    );
-
-    //Filter legendaries
-    const speciesDetails = speciesResponses
-      .map(({ data }) => {
-        return removeUnnecesaryFieldsFromSpecies(data);
-      })
-      .filter((pokemon) => pokemon.is_legendary);
-
-    if (speciesDetails.length == 0)
-      return next(
-        new ErrorResponse(
-          `No legendaries found within the limit and offset stablished`,
-          404
-        )
-      );
-
-    const pokemonDetails = await getPokemonFromSpeciesDetails(speciesDetails);
+    const pokemonList = await getSpecialPokemonList(limit,offset,'is_legendary')
 
     //Respond
     res.status(200).json({
       success: true,
       data: {
-        count: pokemonDetails.length,
-        pokemon: pokemonDetails,
+        count: pokemonList.length,
+        pokemon: pokemonList,
       },
     });
   } catch (error) {
@@ -138,42 +94,15 @@ export const getMythicalPokemons = async (
   const offset = parseInt(req.query.offset as string);
 
   try {
-    const pokemonListResponse = await getPokemonListResponse(limit, offset);
 
-    const pokemonList = pokemonListResponse.data.results;
-
-    //Get all species within boundaries
-    const speciesResponses = await axios.all(
-      pokemonList.map((pokemon) =>
-        axios.get<PokeApiSpeciesInfoDTO>(
-          pokemon.url.replace("pokemon", "pokemon-species")
-        )
-      )
-    );
-
-    //Filter mythical
-    const speciesDetails = speciesResponses
-      .map(({ data }) => {
-        return removeUnnecesaryFieldsFromSpecies(data);
-      })
-      .filter((pokemon) => pokemon.is_mythical);
-
-    if (speciesDetails.length == 0)
-      return next(
-        new ErrorResponse(
-          `No mythical found within the limit and offset stablished`,
-          404
-        )
-      );
-
-    const pokemonDetails = await getPokemonFromSpeciesDetails(speciesDetails);
+    const pokemonList = await getSpecialPokemonList(limit,offset,'is_mythical')
 
     //Respond
     res.status(200).json({
       success: true,
       data: {
-        count: pokemonDetails.length,
-        pokemon: pokemonDetails,
+        count: pokemonList.length,
+        pokemon: pokemonList,
       },
     });
   } catch (error) {
@@ -335,27 +264,12 @@ const removeUnnecesaryFieldsFromPokemon = ({
     id,
     name,
     order,
-    sprite: sprites.other["official-artwork"].front_default,
+    imageUrl: sprites.other["official-artwork"].front_default,
     types: types.map((type) => type.type.name),
   };
 };
 
-const removeUnnecesaryFieldsFromSpecies = (pokemon: PokeApiSpeciesInfoDTO) => {
-  delete pokemon.base_happiness;
-  delete pokemon.capture_rate;
-  delete pokemon.flavor_text_entries;
-  delete pokemon.form_descriptions;
-  delete pokemon.genera;
-  delete pokemon.names;
-  delete pokemon.pal_park_encounters;
-  delete pokemon.pokedex_numbers;
-  delete pokemon.varieties;
 
-  // Since it deleted some keys from the DTO it is necesary to cast it as unknow to be able to set the new type
-  const pokemonInfoCleaned = pokemon as unknown as PokemonSpecieInfo;
-
-  return pokemonInfoCleaned;
-};
 
 const createPaginationObject = (req: Request, total: number) => {
   const page = parseInt(req.query.page as string, 10) || 1;
@@ -383,45 +297,5 @@ const createPaginationObject = (req: Request, total: number) => {
   return pagination;
 };
 
-const getListFromType = (typeId: string) => {
-  return axios.get<PokeApiTypeListDTO>(BASE_URL + "/type/" + typeId);
-};
 
-const getPokemonListResponse = (limit: number, offset: number) => {
-  limit = limit || 20;
-  offset = offset || 0;
-  return axios.get<PokeApiListDTO>(BASE_URL + "/pokemon/", {
-    params: {
-      limit,
-      offset,
-    },
-  });
-};
 
-const getPokemonResponse = (pokemonIdOrName: string | number) => {
-  return axios.get<PokeApiInfoDTO>(BASE_URL + "/pokemon/" + pokemonIdOrName);
-};
-
-const getSpeciesResponse = (pokemonIdOrName: string | number) => {
-  return axios.get<PokeApiSpeciesInfoDTO>(
-    BASE_URL + "/pokemon-species/" + pokemonIdOrName
-  );
-};
-
-const getPokemonFromSpeciesDetails = async (
-  speciesDetails: PokemonSpecieInfo[]
-) => {
-  //Get pokemon details
-  const pokemonResponses = await axios.all(
-    speciesDetails.map((species) => {
-      return getPokemonResponse(species.name);
-    })
-  );
-
-  //Purify pokemon data
-  const pokemonDetails = pokemonResponses.map((response) => {
-    return removeUnnecesaryFieldsFromPokemon(response.data);
-  });
-
-  return pokemonDetails;
-};

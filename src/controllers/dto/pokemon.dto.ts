@@ -3,7 +3,7 @@ import { PokemonInfo } from "../interfaces/pokemon.interface";
 export interface PokeApiListDTO {
   count: number;
   next: string;
-  previus?: string;
+  prev?: string; 
   results: {
     name: string;
     url: string;
