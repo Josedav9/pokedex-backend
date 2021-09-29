@@ -1,14 +1,8 @@
 export interface Pagination {
-  next?: {
-    page: number,
-    limit: number;
-  };
-  prev?: {
-    page: number,
-    limit: number;
-  };
+
   startIndex: number,
   endIndex: number,
+  total: number
 }
 
 export interface PokemonDetails {

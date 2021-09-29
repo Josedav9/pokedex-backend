@@ -1,6 +1,10 @@
 import axios from "axios";
 import { assert } from "console";
+import { createPaginationObject } from "../controllers/misc/pagination";
+import { off } from "process";
+import { ErrorResponse } from "utils/errorResponse";
 import {
+  PokeApiEvolutionChainDTO,
   PokeApiGeneration,
   PokeApiInfoDTO,
   PokeApiListDTO,
@@ -11,6 +15,7 @@ import {
   PokemonInfo,
   Pagination,
   PokemonSpecieInfo,
+  PokemonDetails,
 } from "../controllers/interfaces/pokemon.interface";
 
 const BASE_URL = process.env.BASE_URL;
@@ -76,7 +81,87 @@ limit: number,offset:number,specialField: string
 
 }
 
+export const getPokemonByEvoutionChain = async (
+  pokemonId,
+) =>{
+  const pokemonSpecies = await getSpeciesResponse(pokemonId);
 
+  const evolutionchainInfo = await axios.get<PokeApiEvolutionChainDTO>(
+    pokemonSpecies.data.evolution_chain.url
+  );
+
+  const pokemonNames: PokemonDetails[] = [];
+
+  // Store all evolution inside `pokemonNames`
+  getEvolutionsFromChain(evolutionchainInfo.data.chain, pokemonNames);
+
+  const pokemonInEvolutionChain = await axios.all(
+    pokemonNames.map((pokemon) => getPokemonResponse(pokemon.name))
+  );
+
+  const cleanedPokemonInEvolutionchain = pokemonInEvolutionChain.map(
+    ({ data }) => removeUnnecesaryFieldsFromPokemon(data)
+  );
+
+  return cleanedPokemonInEvolutionchain;
+}
+
+/**
+ * Recursive function to return all pokemons inside a evolution chain
+ * @param chainRoot
+ * @param evolutionsList
+ * @returns evolutionsList - An array with all pokemons info inside the evolution chain
+ */
+ const getEvolutionsFromChain = (
+  chainRoot: PokeApiEvolutionChainDTO["chain"],
+  evolutionsList: PokemonDetails[]
+): PokemonDetails[] => {
+  evolutionsList.push(chainRoot.species);
+  let subChain = chainRoot.evolves_to;
+  if (subChain.length == 0) {
+    return evolutionsList;
+  }
+  return getEvolutionsFromChain(subChain[0], evolutionsList);
+};
+
+
+const _getListFromType = (typeId: string, limit:number,offset: number) => {
+  return axios.get<PokeApiTypeListDTO>(BASE_URL + "/type/" + typeId);
+};
+
+export const getPokemonByType = async (
+  typeId,
+  limit: number,
+  offset: number
+)=>{
+  const pokemonsFromTypeResponse = await _getListFromType(typeId,limit,offset);
+
+  const pokemonsFromType = pokemonsFromTypeResponse.data.pokemon.map(
+    (value) => value.pokemon
+  );
+
+    // Pagination
+    const total = pokemonsFromType.length;
+    const pagination = createPaginationObject(limit, offset, total);
+
+    //Limit
+    const pokemon = pokemonsFromType.slice(
+      pagination.startIndex,
+      pagination.endIndex
+    );
+
+    //Get all pokemon within boundaries
+    const pokemonResponses = await axios.all(
+      pokemon.map((pokemon) => axios.get<PokeApiInfoDTO>(pokemon.url))
+    );
+
+    //Purify data
+    const pokemonDetails = pokemonResponses.map(({ data }) => {
+      return removeUnnecesaryFieldsFromPokemon(data);
+    });
+
+    return {pokemonDetails, pagination};
+}
 
 export const getPokemonBygeneration = async (
   generation: string,
@@ -128,38 +213,9 @@ export const removeUnnecesaryFieldsFromPokemon = ({
   };
 };
 
-export const createPaginationObject = (
-  limit: number,
-  offset: number,
-  total: number
-) => {
-  const startIndex = offset * limit;
-  let endIndex = (offset + 1) * limit
-  if (endIndex > total) endIndex = total;
-
-  // Pagination result
-  const pagination: Pagination = { startIndex, endIndex };
-
-  if (endIndex < total) {
-    pagination.next = {
-      page: offset + 1,
-      limit,
-    };
-  }
-
-  if (startIndex > 0) {
-    pagination.prev = {
-      page: offset - 1,
-      limit,
-    };
-  }
-  return pagination;
-};
 
 
-export const getListFromType = (typeId: string) => {
-  return axios.get<PokeApiTypeListDTO>(BASE_URL + "/type/" + typeId);
-};
+
 
 
 export const getPokemonResponse = (pokemonIdOrName: string | number) => {

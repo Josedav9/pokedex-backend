@@ -15,7 +15,8 @@ import {
   PokemonDetails,
 } from "./interfaces/pokemon.interface";
 
-import { getListFromType, getPokemonBygeneration, getPokemonList, getPokemonResponse, getSpecialPokemonList, getSpeciesResponse } from "../services/pokemon.service";
+import { getPokemonByEvoutionChain, getPokemonBygeneration, getPokemonByType, getPokemonList, getPokemonResponse, getSpecialPokemonList, getSpeciesResponse } from "../services/pokemon.service";
+
 
 const BASE_URL = "https://pokeapi.co/api/v2";
 
@@ -35,7 +36,7 @@ export const getPokemons = async (
   const offset = parseInt(req.query.offset as string);
 
   try {
-    const pokemonList = await getPokemonList(limit,offset);
+    const pokemonList = await getPokemonList(limit, offset);
 
     //Respond
     res.status(200).json({
@@ -65,7 +66,7 @@ export const getLegendaryPokemons = async (
 
   try {
 
-    const pokemonList = await getSpecialPokemonList(limit,offset,'is_legendary')
+    const pokemonList = await getSpecialPokemonList(limit, offset, 'is_legendary')
 
     //Respond
     res.status(200).json({
@@ -95,7 +96,7 @@ export const getMythicalPokemons = async (
 
   try {
 
-    const pokemonList = await getSpecialPokemonList(limit,offset,'is_mythical')
+    const pokemonList = await getSpecialPokemonList(limit, offset, 'is_mythical')
 
     //Respond
     res.status(200).json({
@@ -110,6 +111,8 @@ export const getMythicalPokemons = async (
   }
 };
 
+//TODO: refactor evolutionchain and typelist
+
 /**
  * Gets pokemons in a evolutionchain
  * @route GET /api/v1/pokemon/chain/:pokemonId
@@ -121,33 +124,21 @@ export const getEvolutionChain = async (
   next: NextFunction
 ) => {
   const pokemonId = req.params.pokemonId;
-  const pokemonSpecies = await getSpeciesResponse(pokemonId);
+  try {
+    const evolutionChain: PokemonInfo[] = await getPokemonByEvoutionChain(pokemonId);
 
-  const evolutionchainInfo = await axios.get<PokeApiEvolutionChainDTO>(
-    pokemonSpecies.data.evolution_chain.url
-  );
-
-  const pokemonNames: PokemonDetails[] = [];
-
-  // Store all evolution inside `pokemonNames`
-  getEvolutionsFromChain(evolutionchainInfo.data.chain, pokemonNames);
-
-  const pokemonInEvolutionChain = await axios.all(
-    pokemonNames.map((pokemon) => getPokemonResponse(pokemon.name))
-  );
-
-  const cleanedPokemonInEvolutionchain = pokemonInEvolutionChain.map(
-    ({ data }) => removeUnnecesaryFieldsFromPokemon(data)
-  );
-
-  //Respond
-  res.status(200).json({
-    success: true,
-    data: {
-      count: cleanedPokemonInEvolutionchain.length,
-      pokemon: cleanedPokemonInEvolutionchain,
-    },
-  });
+    //Respond
+    res.status(200).json({
+      success: true,
+      data: {
+        count: evolutionChain.length,
+        pokemon: evolutionChain,
+      },
+    });
+  }
+  catch (e) {
+    return next(new ErrorResponse(`Unexpected error`, 400));
+  }
 };
 
 /**
@@ -161,50 +152,28 @@ export const getPokemonsFromType = async (
   next: NextFunction
 ) => {
   const typeId = req.params.typeId;
-  const pokemonsFromTypeResponse = await getListFromType(typeId);
+  const limit = parseInt(req.query.limit as string) || 20;
+  const offset = parseInt(req.query.offset as string) || 0;
 
-  const pokemonsFromType = pokemonsFromTypeResponse.data.pokemon.map(
-    (value) => value.pokemon
-  );
-
-  if (!pokemonsFromType) {
-    return next(new ErrorResponse(`Type not found with id ${typeId}`, 404));
-  } else {
-    // Pagination
-    const total = pokemonsFromType.length;
-
-    const pagination = createPaginationObject(req, total);
-
-    //Limit
-    const pokemon = pokemonsFromType.slice(
-      pagination.startIndex,
-      pagination.endIndex
-    );
-
-    //Get all pokemon within boundaries
-    const pokemonResponses = await axios.all(
-      pokemon.map((pokemon) => axios.get<PokeApiInfoDTO>(pokemon.url))
-    );
-
-    //Purify data
-    const pokemonDetails = pokemonResponses.map(({ data }) => {
-      return removeUnnecesaryFieldsFromPokemon(data);
-    });
-
+  try {
+    const pokemonList = await getPokemonByType(typeId, limit, offset);
     //Respond
     res.status(200).json({
       success: true,
-      pagination,
+      pagination: pokemonList.pagination,
       data: {
-        count: pokemonDetails.length,
-        pokemon: pokemonDetails,
+        count: pokemonList.pokemonDetails.length,
+        pokemon: pokemonList.pokemonDetails,
       },
     });
+  } catch (error) {
+    return next(new ErrorResponse(`Unexpected error`, 400));
   }
+
 };
 
 /**
- * Gets pokemons of a type
+ * Gets pokemons of a generation
  * @route GET /api/v1/pokemon/generation/:generation
  * @access public
  */
@@ -271,31 +240,7 @@ const removeUnnecesaryFieldsFromPokemon = ({
 
 
 
-const createPaginationObject = (req: Request, total: number) => {
-  const page = parseInt(req.query.page as string, 10) || 1;
-  const limit = parseInt(req.query.limit as string, 10) || 25;
-  const startIndex = (page - 1) * limit;
-  let endIndex = page * limit;
-  if (endIndex > total) endIndex = total;
 
-  // Pagination result
-  const pagination: Pagination = { startIndex, endIndex };
-
-  if (endIndex < total) {
-    pagination.next = {
-      page: page + 1,
-      limit,
-    };
-  }
-
-  if (startIndex > 0) {
-    pagination.prev = {
-      page: page - 1,
-      limit,
-    };
-  }
-  return pagination;
-};
 
 
 
