@@ -15,7 +15,7 @@ import {
   PokemonDetails,
 } from "./interfaces/pokemon.interface";
 
-import { getPokemonByEvoutionChain, getPokemonBygeneration, getPokemonByType, getPokemonList, getPokemonResponse, getSpecialPokemonList, getSpeciesResponse } from "../services/pokemon.service";
+import { getPokemonByEvoutionChain, getPokemonBygeneration, getPokemonByType, getPokemonList,  getSpecialPokemonList } from "../services/pokemon.service";
 
 
 const BASE_URL = "https://pokeapi.co/api/v2";
