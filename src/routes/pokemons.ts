@@ -6,6 +6,7 @@ import {
   getLegendaryPokemons,
   getMythicalPokemons,
   getPokemonByGeneration,
+  
 } from "../controllers/pokemons";
 
 export const router = express.Router();
