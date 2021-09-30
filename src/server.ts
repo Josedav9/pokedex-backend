@@ -11,6 +11,7 @@ dotenv.config();
 
 //Load route files
 import { router } from "./routes/pokemons";
+import { miscRouter } from "./routes/misc";
 
 // Create express app
 const app = express();
@@ -29,6 +30,8 @@ app.use(cors());
 
 //Mount routers
 app.use("/api/v1/pokemon", router);
+app.use("/api/v1/health",miscRouter);
+
 
 //Error handling middleware
 app.use(errorHandler);

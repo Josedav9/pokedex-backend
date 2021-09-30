@@ -18,9 +18,6 @@ import {
 import { getPokemonByEvoutionChain, getPokemonBygeneration, getPokemonByType, getPokemonList,  getSpecialPokemonList } from "../services/pokemon.service";
 
 
-const BASE_URL = "https://pokeapi.co/api/v2";
-
-
 
 /**
  * Gets a list of pokemon with pagination & limits
